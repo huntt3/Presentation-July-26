@@ -14,11 +14,13 @@
     },
     {
       "title": "🔮 Let’s Discover Your Career Path",
-      "date": "(TODAY 7/29 @ 3 - 4:30 PM CT)"
+      "date": "(TODAY 7/29 @ 3 - 4:30 PM CT)",
+      "type": "Career"
     },
     {
       "title": "📁 LinkedIn Hacks",
-      "date": "(TUE 8/3 @6:30 - 8 PM CT)"
+      "date": "(TUE 8/3 @6:30 - 8 PM CT)",
+      "type": "Career"
     }
   ]
 }
