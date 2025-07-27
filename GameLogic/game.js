@@ -53,24 +53,39 @@ async function init() {
     const canvas = document.getElementById("slime-canvas");
     const gameContainer = canvas.parentElement;
 
-    // Calculate game dimensions to fit the full level grid
-    const gameWidth = TILE_SIZE * 25; // LEVEL_WIDTH
-    const gameHeight = TILE_SIZE * 15; // LEVEL_HEIGHT
+    // Set up a function to resize the canvas and app to fill the viewport
+    function resizeGameToViewport() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      app.renderer.resize(width, height);
+      // Resize all background layers if present
+      for (const child of app.stage.children) {
+        if (
+          child.texture &&
+          child.texture.baseTexture &&
+          child.zIndex >= 0 &&
+          child.zIndex <= 3
+        ) {
+          child.width = width;
+          child.height = height;
+        }
+      }
+    }
 
-    // Set canvas size directly for pixel-perfect fit
-    canvas.width = gameWidth;
-    canvas.height = gameHeight;
-    // Remove forced stretching; let CSS handle scaling for responsiveness
-    canvas.style.width = "";
-    canvas.style.height = "";
-
-    // Initialize the application with settings
+    // Initialize the application with full viewport size
     await app.init({
-      width: gameWidth,
-      height: gameHeight,
+      width: window.innerWidth,
+      height: window.innerHeight,
       backgroundColor: 0x87ceeb, // Sky blue background
       canvas: canvas,
     });
+
+    // Listen for window resize events
+    window.addEventListener("resize", resizeGameToViewport);
+    // Initial resize
+    resizeGameToViewport();
 
     // Load TODO data
     await loadTodoData();

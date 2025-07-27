@@ -33,24 +33,25 @@ function initializeEmptyLevel() {
 
 // Create a sample level with platforms and signs
 function createSampleLevel() {
-  // Set up a single row of 36 platform tiles at the bottom
+  // Set up a single row of 36 platform tiles near the bottom (but not at the very bottom)
   const platformCount = 36;
+  const platformRow = LEVEL_HEIGHT - 3; // Place platforms 3 rows from the bottom
   initializeEmptyLevel();
   for (let x = 0; x < platformCount; x++) {
-    // Place platforms on the very bottom row
-    currentLevelData[LEVEL_HEIGHT - 1][x] = TILE_TYPES.PLATFORM;
+    // Place platforms on row 3 from bottom
+    currentLevelData[platformRow][x] = TILE_TYPES.PLATFORM;
   }
 
   // Remove the 7th tile (index 6)
-  currentLevelData[LEVEL_HEIGHT - 1][6] = TILE_TYPES.EMPTY;
+  currentLevelData[platformRow][6] = TILE_TYPES.EMPTY;
 
   // Place a crate (box) above the 5th tile (index 4)
-  currentLevelData[LEVEL_HEIGHT - 2][4] = TILE_TYPES.CRATE;
+  currentLevelData[platformRow - 1][4] = TILE_TYPES.CRATE;
 
   // Place signs directly above the specified tiles (adjusted for removed 7th tile)
   const signTiles = [1, 10, 15, 17, 20]; // 0-based indices for 7th, 15th, 22nd, 26th, 29th
   for (const x of signTiles) {
-    currentLevelData[LEVEL_HEIGHT - 2][x] = TILE_TYPES.SIGN;
+    currentLevelData[platformRow - 1][x] = TILE_TYPES.SIGN;
   }
 
   console.log(

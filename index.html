@@ -17,15 +17,12 @@
     />
   </head>
   <body>
-    <div class="container-fluid p-0 largeCanvas">
-      <div class="d-flex justify-content-center" style="height: calc(100vh - 150px); max-height: 600px;">
-        <canvas
-          id="slime-canvas"
-          style="width: 100%; height: 100%;"
-          aria-label="Slime Game Canvas"
-        ></canvas>
-      </div>
-      <div id="todo-cards" class="row row-cols-1 g-4"></div>
+    <div class="container-fluid p-0">
+      <canvas
+        id="slime-canvas"
+        aria-label="Slime Game Canvas"
+      ></canvas>
+      <div id="todo-cards" class="row row-cols-1 g-4" style="display: none;"></div>
     </div>
     <script src=./node_modules/pixi.js/dist/pixi.min.js></script>
     <script src="./GameLogic/game.js" type="module"></script>
