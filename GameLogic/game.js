@@ -2,27 +2,31 @@
 const app = new PIXI.Application();
 
 // Game constants
-const GRAVITY = 0.3;
-const JUMP_FORCE = -6;
-const MOVE_SPEED = 2;
-const TILE_SIZE = 16;
+const GRAVITY = 0.5;
+const JUMP_FORCE = -12;
+const MOVE_SPEED = 4;
+const TILE_SIZE = 32;
 
 // Game state
 let keys = {};
 let player;
 let platforms = [];
+let signs = [];
+let todoData = [];
 let idleTextures = [];
 let jumpTextures = [];
 let isPlayerOnGround = false;
+let showingMessage = false;
+let messageContainer = null;
 
 // Player object
 const playerState = {
-  x: 50,
-  y: 50,
+  x: 100,
+  y: 100,
   velocityX: 0,
   velocityY: 0,
-  width: 16,
-  height: 16,
+  width: 32,
+  height: 32,
   isJumping: false,
   animationFrame: 0,
   animationSpeed: 0.1,
@@ -32,17 +36,34 @@ const playerState = {
 // Initialize the game
 async function init() {
   try {
+    // Get canvas element and make it responsive
+    const canvas = document.getElementById("slime-canvas");
+    const gameContainer = canvas.parentElement;
+
+    // Calculate game dimensions based on available space
+    const gameWidth = gameContainer.offsetWidth;
+    const gameHeight = gameContainer.offsetHeight;
+
     // Initialize the application with settings
     await app.init({
-      width: 256,
-      height: 96,
+      width: gameWidth,
+      height: gameHeight,
       backgroundColor: 0x87ceeb, // Sky blue background
-      canvas: document.getElementById("slime-canvas"),
+      canvas: canvas,
+      resizeTo: gameContainer,
     });
-    
+
+    // Load TODO data
+    await loadTodoData();
+
     // Load platform texture
     const platformTexture = await PIXI.Assets.load(
       "./tiles/world_tileset/tile_020.png"
+    );
+
+    // Load sign texture
+    const signTexture = await PIXI.Assets.load(
+      "./tiles/world_tileset/tile_052.png"
     );
 
     // Load slime idle textures
@@ -65,13 +86,41 @@ async function init() {
     // Create platforms
     createPlatforms(platformTexture);
 
+    // Create signs
+    createSigns(signTexture);
+
     // Create player
     createPlayer();
+
+    // Create message container
+    createMessageContainer();
 
     // Start game loop
     app.ticker.add(gameLoop);
   } catch (error) {
     console.error("Error loading assets:", error);
+  }
+}
+
+// Load TODO data from JSON file
+async function loadTodoData() {
+  try {
+    const response = await fetch("./JsonFiles/text.json");
+    const data = await response.json();
+    todoData = data.TODO;
+  } catch (error) {
+    console.error("Error loading TODO data:", error);
+    // Fallback data if file can't be loaded
+    todoData = [
+      {
+        title: "🍿 Finish watching Week 4 video lessons",
+        date: "BEFORE Tuesday",
+      },
+      { title: "🎯 Project 4: Game Concept", date: "SUNDAY" },
+      { title: "🧪 Next LiveLab#9", date: "July 10th" },
+      { title: "🔮 Discover Your Career Path", date: "TODAY 7/29" },
+      { title: "📁 LinkedIn Hacks", date: "TUE 8/3" },
+    ];
   }
 }
 
@@ -94,59 +143,159 @@ function createPlatforms(texture) {
   }
 
   // Upper story platforms (left side)
-  for (let x = 0; x < app.screen.width * 0.4; x += TILE_SIZE) {
+  for (let x = 0; x < app.screen.width * 0.3; x += TILE_SIZE) {
     const platform = new PIXI.Sprite(texture);
     platform.x = x;
-    platform.y = app.screen.height - TILE_SIZE * 3;
+    platform.y = app.screen.height - TILE_SIZE * 4;
     platform.width = TILE_SIZE;
     platform.height = TILE_SIZE;
     app.stage.addChild(platform);
 
     platforms.push({
       x: x,
-      y: app.screen.height - TILE_SIZE * 3,
+      y: app.screen.height - TILE_SIZE * 4,
       width: TILE_SIZE,
       height: TILE_SIZE,
     });
   }
 
   // Upper story platforms (right side)
-  for (let x = app.screen.width * 0.6; x < app.screen.width; x += TILE_SIZE) {
+  for (let x = app.screen.width * 0.7; x < app.screen.width; x += TILE_SIZE) {
     const platform = new PIXI.Sprite(texture);
     platform.x = x;
-    platform.y = app.screen.height - TILE_SIZE * 3;
+    platform.y = app.screen.height - TILE_SIZE * 4;
     platform.width = TILE_SIZE;
     platform.height = TILE_SIZE;
     app.stage.addChild(platform);
 
     platforms.push({
       x: x,
-      y: app.screen.height - TILE_SIZE * 3,
+      y: app.screen.height - TILE_SIZE * 4,
       width: TILE_SIZE,
       height: TILE_SIZE,
     });
   }
 
-  // Middle platform
+  // Middle platforms
   for (
-    let x = app.screen.width * 0.3;
-    x < app.screen.width * 0.7;
-    x += TILE_SIZE
+    let x = app.screen.width * 0.2;
+    x < app.screen.width * 0.8;
+    x += TILE_SIZE * 2
   ) {
     const platform = new PIXI.Sprite(texture);
     platform.x = x;
-    platform.y = app.screen.height - TILE_SIZE * 2;
+    platform.y = app.screen.height - TILE_SIZE * 2.5;
     platform.width = TILE_SIZE;
     platform.height = TILE_SIZE;
     app.stage.addChild(platform);
 
     platforms.push({
       x: x,
-      y: app.screen.height - TILE_SIZE * 2,
+      y: app.screen.height - TILE_SIZE * 2.5,
       width: TILE_SIZE,
       height: TILE_SIZE,
     });
   }
+}
+
+// Create signs with TODO information
+function createSigns(texture) {
+  const signPositions = [
+    { x: app.screen.width * 0.15, y: app.screen.height - TILE_SIZE * 2 }, // Ground level left
+    { x: app.screen.width * 0.85, y: app.screen.height - TILE_SIZE * 2 }, // Ground level right
+    { x: app.screen.width * 0.15, y: app.screen.height - TILE_SIZE * 5 }, // Upper left
+    { x: app.screen.width * 0.85, y: app.screen.height - TILE_SIZE * 5 }, // Upper right
+    { x: app.screen.width * 0.5, y: app.screen.height - TILE_SIZE * 3.5 }, // Middle platform
+  ];
+
+  for (let i = 0; i < Math.min(signPositions.length, todoData.length); i++) {
+    const sign = new PIXI.Sprite(texture);
+    sign.x = signPositions[i].x;
+    sign.y = signPositions[i].y;
+    sign.width = TILE_SIZE;
+    sign.height = TILE_SIZE;
+    app.stage.addChild(sign);
+
+    signs.push({
+      x: signPositions[i].x,
+      y: signPositions[i].y,
+      width: TILE_SIZE,
+      height: TILE_SIZE,
+      todoIndex: i,
+    });
+  }
+}
+
+// Create message container for displaying TODO information
+function createMessageContainer() {
+  messageContainer = new PIXI.Container();
+  messageContainer.visible = false;
+  app.stage.addChild(messageContainer);
+}
+
+// Show TODO message
+function showTodoMessage(todoIndex) {
+  if (showingMessage || todoIndex >= todoData.length) return;
+
+  showingMessage = true;
+  const todo = todoData[todoIndex];
+
+  // Create background
+  const background = new PIXI.Graphics();
+  background.beginFill(0x000000, 0.8);
+  background.drawRoundedRect(
+    0,
+    0,
+    app.screen.width * 0.8,
+    app.screen.height * 0.3,
+    10
+  );
+  background.endFill();
+  background.x = app.screen.width * 0.1;
+  background.y = app.screen.height * 0.1;
+
+  // Create text
+  const titleText = new PIXI.Text(todo.title, {
+    fontFamily: "Arial",
+    fontSize: Math.max(16, app.screen.width * 0.025),
+    fill: 0xffffff,
+    wordWrap: true,
+    wordWrapWidth: app.screen.width * 0.7,
+  });
+  titleText.x = background.x + 20;
+  titleText.y = background.y + 20;
+
+  const dateText = new PIXI.Text(`Due: ${todo.date}`, {
+    fontFamily: "Arial",
+    fontSize: Math.max(14, app.screen.width * 0.02),
+    fill: 0xffff00,
+    wordWrap: true,
+    wordWrapWidth: app.screen.width * 0.7,
+  });
+  dateText.x = background.x + 20;
+  dateText.y = titleText.y + titleText.height + 10;
+
+  const instructionText = new PIXI.Text("Press E to close", {
+    fontFamily: "Arial",
+    fontSize: Math.max(12, app.screen.width * 0.018),
+    fill: 0xcccccc,
+  });
+  instructionText.x = background.x + 20;
+  instructionText.y = dateText.y + dateText.height + 20;
+
+  // Add to container
+  messageContainer.removeChildren();
+  messageContainer.addChild(background);
+  messageContainer.addChild(titleText);
+  messageContainer.addChild(dateText);
+  messageContainer.addChild(instructionText);
+  messageContainer.visible = true;
+}
+
+// Hide TODO message
+function hideTodoMessage() {
+  showingMessage = false;
+  messageContainer.visible = false;
 }
 
 function createPlayer() {
@@ -164,6 +313,7 @@ function gameLoop() {
   updatePlayer();
   updateAnimation();
   checkCollisions();
+  checkSignInteraction();
   updatePlayerSprite();
 }
 
@@ -242,6 +392,39 @@ function checkCollisions() {
   }
 }
 
+// Check if player is near a sign and show interaction prompt
+function checkSignInteraction() {
+  for (let sign of signs) {
+    // Check if player is near the sign
+    if (
+      playerState.x < sign.x + sign.width + 20 &&
+      playerState.x + playerState.width > sign.x - 20 &&
+      playerState.y < sign.y + sign.height + 20 &&
+      playerState.y + playerState.height > sign.y - 20
+    ) {
+      // Show interaction hint (you could add a visual indicator here)
+      return sign.todoIndex;
+    }
+  }
+  return -1;
+}
+
+// Check sign collision when E is pressed
+function checkSignCollision() {
+  for (let sign of signs) {
+    // Check if player is touching the sign
+    if (
+      playerState.x < sign.x + sign.width &&
+      playerState.x + playerState.width > sign.x &&
+      playerState.y < sign.y + sign.height &&
+      playerState.y + playerState.height > sign.y
+    ) {
+      showTodoMessage(sign.todoIndex);
+      return;
+    }
+  }
+}
+
 function updateAnimation() {
   playerState.animationTimer += playerState.animationSpeed;
 
@@ -271,15 +454,33 @@ function updatePlayerSprite() {
   }
 }
 
+// Game state for key handling
+let eKeyPressed = false;
+
 // Keyboard event listeners
 window.addEventListener("keydown", (e) => {
   keys[e.code] = true;
   keys[e.key] = true;
+
+  // Handle E key press for sign interaction (prevent repeat)
+  if ((e.key === "e" || e.key === "E") && !eKeyPressed) {
+    eKeyPressed = true;
+    if (showingMessage) {
+      hideTodoMessage();
+    } else {
+      checkSignCollision();
+    }
+  }
 });
 
 window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
   keys[e.key] = false;
+
+  // Reset E key state
+  if (e.key === "e" || e.key === "E") {
+    eKeyPressed = false;
+  }
 });
 
 // Start the game
