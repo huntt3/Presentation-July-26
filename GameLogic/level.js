@@ -41,13 +41,21 @@ function createSampleLevel() {
     currentLevelData[LEVEL_HEIGHT - 1][x] = TILE_TYPES.PLATFORM;
   }
 
-  // Place signs directly above the specified tiles
+  // Remove the 7th tile (index 6)
+  currentLevelData[LEVEL_HEIGHT - 1][6] = TILE_TYPES.EMPTY;
+
+  // Place a crate (box) above the 5th tile (index 4)
+  currentLevelData[LEVEL_HEIGHT - 2][4] = TILE_TYPES.CRATE;
+
+  // Place signs directly above the specified tiles (adjusted for removed 7th tile)
   const signTiles = [1, 10, 15, 17, 20]; // 0-based indices for 7th, 15th, 22nd, 26th, 29th
   for (const x of signTiles) {
     currentLevelData[LEVEL_HEIGHT - 2][x] = TILE_TYPES.SIGN;
   }
 
-  console.log("Created custom sample level with 36 platforms and 5 signs");
+  console.log(
+    "Created custom sample level with 36 platforms, 5 signs, and 1 crate"
+  );
 }
 
 // Get tile at specific grid position

@@ -1,9 +1,12 @@
 // Simple Platformer Game using PIXI.js and modular tile/grid system
 import {
   TILE_SIZE,
+  TILE_TYPES,
   createSampleLevel,
   getPlatformsFromLevel,
   getSignsFromLevel,
+  currentLevelData,
+  initializeEmptyLevel,
 } from "./level.js";
 
 const app = new PIXI.Application();
@@ -18,6 +21,7 @@ let keys = {};
 let player;
 let platforms = [];
 let signs = [];
+let crates = [];
 let todoData = [];
 let idleTextures = [];
 let jumpTextures = [];
@@ -26,7 +30,6 @@ let showingMessage = false;
 let messageContainer = null;
 let slimeColorCanvas = null;
 let slimeColorContext = null;
-let currentLevelData = null;
 
 // Player object
 const playerState = {
@@ -89,16 +92,29 @@ async function init() {
       jumpTextures.push(texture);
     }
 
-    // Load platform and sign textures
+    // Load platform, sign, and crate textures
     const platformTexture = await PIXI.Assets.load(
       "./tiles/world_tileset/tile_020.png"
     );
     const signTexture = await PIXI.Assets.load(
       "./tiles/world_tileset/tile_052.png"
     );
+    const crateTexture = await PIXI.Assets.load(
+      "./tiles/world_tileset/tile_051.png"
+    );
 
     // Create level data (36 platform tiles, signs above specific tiles)
-    currentLevelData = createSampleLevel();
+    createSampleLevel();
+    // Defensive: ensure currentLevelData is initialized
+    if (
+      !currentLevelData ||
+      !Array.isArray(currentLevelData) ||
+      !currentLevelData[0]
+    ) {
+      if (typeof initializeEmptyLevel === "function") {
+        initializeEmptyLevel();
+      }
+    }
 
     // Get platform and sign positions from level data
     const platformPositions = getPlatformsFromLevel(TILE_SIZE);
@@ -107,6 +123,7 @@ async function init() {
     // Clear arrays
     platforms = [];
     signs = [];
+    crates = [];
 
     // Add platform sprites to stage and store positions for collision
     for (const pos of platformPositions) {
@@ -139,6 +156,32 @@ async function init() {
         height: pos.height,
         todoIndex: pos.todoIndex,
       });
+    }
+
+    // Add crate sprites to stage and store crate objects
+    for (let y = 0; y < 15; y++) {
+      for (let x = 0; x < 36; x++) {
+        if (
+          typeof currentLevelData[y] !== "undefined" &&
+          currentLevelData[y][x] === TILE_TYPES.CRATE
+        ) {
+          const crate = {
+            x: x * TILE_SIZE,
+            y: y * TILE_SIZE,
+            width: TILE_SIZE,
+            height: TILE_SIZE,
+            velocityX: 0,
+            velocityY: 0,
+            sprite: new PIXI.Sprite(crateTexture),
+          };
+          crate.sprite.x = crate.x;
+          crate.sprite.y = crate.y;
+          crate.sprite.width = TILE_SIZE;
+          crate.sprite.height = TILE_SIZE;
+          app.stage.addChild(crate.sprite);
+          crates.push(crate);
+        }
+      }
     }
 
     // Create player
@@ -322,10 +365,82 @@ function checkBluePixelCollision(platform) {
 function gameLoop() {
   handleInput();
   updatePlayer();
+  updateCrates();
   updateAnimation();
   checkCollisions();
   checkSignInteraction();
   updatePlayerSprite();
+  // Update crate physics and handle player pushing
+  function updateCrates() {
+    for (const crate of crates) {
+      // Apply gravity
+      crate.velocityY += GRAVITY;
+
+      // Horizontal movement: check if player is pushing
+      if (
+        playerState.x + playerState.width > crate.x &&
+        playerState.x < crate.x + crate.width &&
+        playerState.y + playerState.height > crate.y &&
+        playerState.y < crate.y + crate.height
+      ) {
+        // Player is touching crate horizontally
+        if (playerState.velocityX !== 0) {
+          crate.velocityX = playerState.velocityX;
+        }
+      }
+
+      // Apply friction to crate
+      crate.velocityX *= 0.8;
+      if (Math.abs(crate.velocityX) < 0.1) crate.velocityX = 0;
+
+      // Update crate position
+      crate.x += crate.velocityX;
+      crate.y += crate.velocityY;
+
+      // Collide with platforms (stand on platforms)
+      for (const platform of platforms) {
+        if (
+          crate.x < platform.x + platform.width &&
+          crate.x + crate.width > platform.x &&
+          crate.y + crate.height > platform.y &&
+          crate.y + crate.height - crate.velocityY <= platform.y
+        ) {
+          // Land on top of platform
+          crate.y = platform.y - crate.height;
+          crate.velocityY = 0;
+        }
+      }
+
+      // Collide with other crates (stacking)
+      for (const other of crates) {
+        if (other === crate) continue;
+        if (
+          crate.x < other.x + other.width &&
+          crate.x + crate.width > other.x &&
+          crate.y + crate.height > other.y &&
+          crate.y + crate.height - crate.velocityY <= other.y
+        ) {
+          crate.y = other.y - crate.height;
+          crate.velocityY = 0;
+        }
+      }
+
+      // Prevent crate from falling below the screen
+      if (crate.y + crate.height > app.screen.height) {
+        crate.y = app.screen.height - crate.height;
+        crate.velocityY = 0;
+      }
+
+      // Prevent crate from going out of bounds horizontally
+      if (crate.x < 0) crate.x = 0;
+      if (crate.x + crate.width > app.screen.width)
+        crate.x = app.screen.width - crate.width;
+
+      // Update sprite position
+      crate.sprite.x = crate.x;
+      crate.sprite.y = crate.y;
+    }
+  }
 }
 
 function handleInput() {
