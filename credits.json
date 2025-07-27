@@ -1,0 +1,20 @@
+{
+  "Credits": [
+    {
+      "title": "Slime",
+      "source": "cactusturtle"
+    },
+    {
+      "title": "Water Cannon",
+      "date": "anton-chi"
+    },
+    {
+      "title": "Tiles",
+      "date": "Brackeys"
+    },
+    {
+      "title": "Game Engine",
+      "date": "LittleJS"
+    }
+  ]
+}
