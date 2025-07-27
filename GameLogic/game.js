@@ -92,6 +92,18 @@ async function init() {
       jumpTextures.push(texture);
     }
 
+    // Load background cloud layers (parallax)
+    const cloudLayer1 = await PIXI.Assets.load("./background/Clouds 7/1.png");
+    const cloudLayer2 = await PIXI.Assets.load("./background/Clouds 7/2.png");
+    const cloudLayer3 = await PIXI.Assets.load("./background/Clouds 7/3.png");
+    const cloudLayer4 = await PIXI.Assets.load("./background/Clouds 7/4.png");
+
+    // Create and add background layers (furthest to closest)
+    addBackgroundLayer(cloudLayer1, 0);
+    addBackgroundLayer(cloudLayer2, 1);
+    addBackgroundLayer(cloudLayer3, 2);
+    addBackgroundLayer(cloudLayer4, 3);
+
     // Load platform, sign, and crate textures
     const platformTexture = await PIXI.Assets.load(
       "./tiles/world_tileset/tile_020.png"
@@ -102,6 +114,17 @@ async function init() {
     const crateTexture = await PIXI.Assets.load(
       "./tiles/world_tileset/tile_051.png"
     );
+    // Add a background layer to the stage, stretched to fill the canvas
+    function addBackgroundLayer(texture, zIndex) {
+      const bg = new PIXI.Sprite(texture);
+      bg.x = 0;
+      bg.y = 0;
+      bg.width = app.screen.width;
+      bg.height = app.screen.height;
+      bg.zIndex = zIndex;
+      bg.anchor = { x: 0, y: 0 };
+      app.stage.addChildAt(bg, zIndex);
+    }
 
     // Create level data (36 platform tiles, signs above specific tiles)
     createSampleLevel();
@@ -188,6 +211,9 @@ async function init() {
       }
     }
 
+    // Add header content to the game canvas using PIXI.Text
+    addHeaderToCanvas();
+
     // Create player
     createPlayer();
 
@@ -199,6 +225,44 @@ async function init() {
 
     // Start game loop
     app.ticker.add(gameLoop);
+    // Add header content to the game canvas using PIXI.Text
+    function addHeaderToCanvas() {
+      // Main title
+      const titleText = new PIXI.Text("Web Development for Everyone", {
+        fontFamily: "Arial Black, Arial, sans-serif",
+        fontWeight: "bold",
+        fontSize: 38,
+        fill: 0xffffff,
+        align: "center",
+        dropShadow: true,
+        dropShadowColor: "#000000",
+        dropShadowBlur: 4,
+        dropShadowDistance: 2,
+      });
+      titleText.x = (app.screen.width - titleText.width) / 2;
+      titleText.y = 12;
+      titleText.accessible = true;
+      titleText.accessibleTitle = "Main Title";
+      app.stage.addChild(titleText);
+
+      // Subtitle
+      const subtitleText = new PIXI.Text("Week 4 | LiveLab 8", {
+        fontFamily: "Arial Black, Arial, sans-serif",
+        fontWeight: "bold",
+        fontSize: 24,
+        fill: 0xcccccc,
+        align: "center",
+        dropShadow: true,
+        dropShadowColor: "#000000",
+        dropShadowBlur: 2,
+        dropShadowDistance: 1,
+      });
+      subtitleText.x = (app.screen.width - subtitleText.width) / 2;
+      subtitleText.y = titleText.y + titleText.height + 2;
+      subtitleText.accessible = true;
+      subtitleText.accessibleTitle = "Subtitle";
+      app.stage.addChild(subtitleText);
+    }
   } catch (error) {
     console.error("Error loading assets:", error);
   }
