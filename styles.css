@@ -1,0 +1,14 @@
+/* Card hover effect: make the date pop */
+.card {
+  overflow: hidden;
+}
+.card .card-text {
+  display: inline-block;
+  transition: all 0.2s;
+  will-change: transform;
+}
+.card:hover .card-text {
+  color: #6f42c1;
+  font-weight: bold;
+  transform: scale(1.15) translateX(100px);
+}
