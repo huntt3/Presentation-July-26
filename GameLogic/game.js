@@ -1,11 +1,17 @@
-// Simple Platformer Game using PIXI.js
+// Simple Platformer Game using PIXI.js and modular tile/grid system
+import {
+  TILE_SIZE,
+  createSampleLevel,
+  getPlatformsFromLevel,
+  getSignsFromLevel,
+} from "./level.js";
+
 const app = new PIXI.Application();
 
 // Game constants
 const GRAVITY = 0.5;
 const JUMP_FORCE = -12;
 const MOVE_SPEED = 4;
-const TILE_SIZE = 64;
 
 // Game state
 let keys = {};
@@ -20,6 +26,7 @@ let showingMessage = false;
 let messageContainer = null;
 let slimeColorCanvas = null;
 let slimeColorContext = null;
+let currentLevelData = null;
 
 // Player object
 const playerState = {
@@ -43,12 +50,15 @@ async function init() {
     const canvas = document.getElementById("slime-canvas");
     const gameContainer = canvas.parentElement;
 
-    // Calculate game dimensions based on available space
-    const gameWidth = gameContainer.offsetWidth;
-    const gameHeight = Math.min(
-      gameContainer.offsetHeight,
-      window.innerHeight - 150
-    ); // Account for header
+    // Calculate game dimensions to fit the full level grid
+    const gameWidth = TILE_SIZE * 25; // LEVEL_WIDTH
+    const gameHeight = TILE_SIZE * 15; // LEVEL_HEIGHT
+
+    // Set canvas size directly for pixel-perfect fit
+    canvas.width = gameWidth;
+    canvas.height = gameHeight;
+    canvas.style.width = "100%";
+    canvas.style.height = "auto";
 
     // Initialize the application with settings
     await app.init({
@@ -60,16 +70,6 @@ async function init() {
 
     // Load TODO data
     await loadTodoData();
-
-    // Load platform texture
-    const platformTexture = await PIXI.Assets.load(
-      "./tiles/world_tileset/tile_020.png"
-    );
-
-    // Load sign texture
-    const signTexture = await PIXI.Assets.load(
-      "./tiles/world_tileset/tile_052.png"
-    );
 
     // Load slime idle textures
     for (let i = 0; i <= 6; i++) {
@@ -88,11 +88,57 @@ async function init() {
       jumpTextures.push(texture);
     }
 
-    // Create platforms
-    createPlatforms(platformTexture);
+    // Load platform and sign textures
+    const platformTexture = await PIXI.Assets.load(
+      "./tiles/world_tileset/tile_020.png"
+    );
+    const signTexture = await PIXI.Assets.load(
+      "./tiles/world_tileset/tile_052.png"
+    );
 
-    // Create signs
-    createSigns(signTexture);
+    // Create level data (36 platform tiles, signs above specific tiles)
+    currentLevelData = createSampleLevel();
+
+    // Get platform and sign positions from level data
+    const platformPositions = getPlatformsFromLevel(TILE_SIZE);
+    const signPositions = getSignsFromLevel(TILE_SIZE);
+
+    // Clear arrays
+    platforms = [];
+    signs = [];
+
+    // Add platform sprites to stage and store positions for collision
+    for (const pos of platformPositions) {
+      const sprite = new PIXI.Sprite(platformTexture);
+      sprite.x = pos.x;
+      sprite.y = pos.y;
+      sprite.width = pos.width;
+      sprite.height = pos.height;
+      app.stage.addChild(sprite);
+      platforms.push({
+        x: pos.x,
+        y: pos.y,
+        width: pos.width,
+        height: pos.height,
+      });
+    }
+
+    // Add sign sprites to stage and store positions for interaction
+    for (const [i, pos] of signPositions.entries()) {
+      const sprite = new PIXI.Sprite(signTexture);
+      sprite.x = pos.x;
+      sprite.y = pos.y;
+      sprite.width = pos.width;
+      sprite.height = pos.height;
+      app.stage.addChild(sprite);
+      signs.push({
+        x: pos.x,
+        y: pos.y,
+        width: pos.width,
+        height: pos.height,
+        todoIndex: pos.todoIndex,
+      });
+    }
 
     // Create player
     createPlayer();
@@ -132,107 +178,9 @@ async function loadTodoData() {
   }
 }
 
-function createPlatforms(texture) {
-  // Ground level platforms
-  for (let x = 0; x < app.screen.width; x += TILE_SIZE) {
-    const platform = new PIXI.Sprite(texture);
-    platform.x = x;
-    platform.y = app.screen.height - TILE_SIZE;
-    platform.width = TILE_SIZE;
-    platform.height = TILE_SIZE;
-    app.stage.addChild(platform);
+// Platforms are now created from level data using getPlatformsFromLevel()
 
-    platforms.push({
-      x: x,
-      y: app.screen.height - TILE_SIZE,
-      width: TILE_SIZE,
-      height: TILE_SIZE,
-    });
-  }
-
-  // Upper story platforms (left side)
-  for (let x = 0; x < app.screen.width * 0.3; x += TILE_SIZE) {
-    const platform = new PIXI.Sprite(texture);
-    platform.x = x;
-    platform.y = app.screen.height - TILE_SIZE * 4;
-    platform.width = TILE_SIZE;
-    platform.height = TILE_SIZE;
-    app.stage.addChild(platform);
-
-    platforms.push({
-      x: x,
-      y: app.screen.height - TILE_SIZE * 4,
-      width: TILE_SIZE,
-      height: TILE_SIZE,
-    });
-  }
-
-  // Upper story platforms (right side)
-  for (let x = app.screen.width * 0.7; x < app.screen.width; x += TILE_SIZE) {
-    const platform = new PIXI.Sprite(texture);
-    platform.x = x;
-    platform.y = app.screen.height - TILE_SIZE * 4;
-    platform.width = TILE_SIZE;
-    platform.height = TILE_SIZE;
-    app.stage.addChild(platform);
-
-    platforms.push({
-      x: x,
-      y: app.screen.height - TILE_SIZE * 4,
-      width: TILE_SIZE,
-      height: TILE_SIZE,
-    });
-  }
-
-  // Middle platforms
-  for (
-    let x = app.screen.width * 0.2;
-    x < app.screen.width * 0.8;
-    x += TILE_SIZE * 2
-  ) {
-    const platform = new PIXI.Sprite(texture);
-    platform.x = x;
-    platform.y = app.screen.height - TILE_SIZE * 2.5;
-    platform.width = TILE_SIZE;
-    platform.height = TILE_SIZE;
-    app.stage.addChild(platform);
-
-    platforms.push({
-      x: x,
-      y: app.screen.height - TILE_SIZE * 2.5,
-      width: TILE_SIZE,
-      height: TILE_SIZE,
-    });
-  }
-}
-
-// Create signs with TODO information
-function createSigns(texture) {
-  const signPositions = [
-    { x: app.screen.width * 0.15, y: app.screen.height - TILE_SIZE * 2 }, // Ground level left
-    { x: app.screen.width * 0.85, y: app.screen.height - TILE_SIZE * 2 }, // Ground level right
-    { x: app.screen.width * 0.15, y: app.screen.height - TILE_SIZE * 5 }, // Upper left
-    { x: app.screen.width * 0.85, y: app.screen.height - TILE_SIZE * 5 }, // Upper right
-    { x: app.screen.width * 0.5, y: app.screen.height - TILE_SIZE * 3.5 }, // Middle platform
-  ];
-
-  for (let i = 0; i < Math.min(signPositions.length, todoData.length); i++) {
-    const sign = new PIXI.Sprite(texture);
-    sign.x = signPositions[i].x;
-    sign.y = signPositions[i].y;
-    sign.width = TILE_SIZE;
-    sign.height = TILE_SIZE;
-    app.stage.addChild(sign);
-
-    signs.push({
-      x: signPositions[i].x,
-      y: signPositions[i].y,
-      width: TILE_SIZE,
-      height: TILE_SIZE,
-      todoIndex: i,
-    });
-  }
-}
+// Signs are now created from level data using getSignsFromLevel()
 
 // Create message container for displaying TODO information
 function createMessageContainer() {
