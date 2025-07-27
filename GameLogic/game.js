@@ -507,10 +507,10 @@ function gameLoop() {
         }
       }
 
-      // Prevent crate from falling below the screen
-      if (crate.y + crate.height > app.screen.height) {
-        crate.y = app.screen.height - crate.height;
-        crate.velocityY = 0;
+      // Allow crate to fall through the bottom - remove when fully off-screen
+      if (crate.y > app.screen.height) {
+        // Mark crate for removal by setting a flag
+        crate.shouldRemove = true;
       }
 
       // Prevent crate from going out of bounds horizontally
@@ -526,6 +526,18 @@ function gameLoop() {
       // Update sprite position
       crate.sprite.x = crate.x;
       crate.sprite.y = crate.y;
+    }
+
+    // Remove crates that have fallen off the screen
+    for (let i = crates.length - 1; i >= 0; i--) {
+      const crate = crates[i];
+      if (crate.shouldRemove) {
+        // Remove sprite from stage
+        app.stage.removeChild(crate.sprite);
+        // Remove crate from array
+        crates.splice(i, 1);
+        console.log("Removed crate that fell off screen");
+      }
     }
   }
 }
