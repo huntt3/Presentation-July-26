@@ -71,7 +71,7 @@ fetch("text.json")
       Composite.add(engine.world, body);
     });
 
-    // Add ground and walls
+    // Add only ground (no left/right walls)
     const ground = Bodies.rectangle(
       cardWidth / 2 + 32,
       window.innerHeight + 60,
@@ -79,21 +79,7 @@ fetch("text.json")
       40,
       { isStatic: true }
     );
-    const leftWall = Bodies.rectangle(
-      -40,
-      window.innerHeight / 2,
-      80,
-      window.innerHeight,
-      { isStatic: true }
-    );
-    const rightWall = Bodies.rectangle(
-      window.innerWidth + 40,
-      window.innerHeight / 2,
-      80,
-      window.innerHeight,
-      { isStatic: true }
-    );
-    Composite.add(engine.world, [ground, leftWall, rightWall]);
+    Composite.add(engine.world, [ground]);
 
     // Mouse control
     const mouse = Mouse.create(document.body);
@@ -126,11 +112,24 @@ fetch("text.json")
       }
     });
 
-    // Sync DOM to physics
+    // Sync DOM to physics and remove cards that leave the page
     function update() {
-      for (let i = 0; i < cardBodies.length; i++) {
+      for (let i = cardBodies.length - 1; i >= 0; i--) {
         const body = cardBodies[i];
         const div = cardDivs[i].parentElement;
+        // Remove if the entire card is out of viewport (all sides)
+        if (
+          body.position.x + cardWidth / 2 < 0 ||
+          body.position.x - cardWidth / 2 > window.innerWidth ||
+          body.position.y - cardHeight / 2 > window.innerHeight ||
+          body.position.y + cardHeight / 2 < 0
+        ) {
+          if (div && div.parentElement) div.parentElement.removeChild(div);
+          Composite.remove(engine.world, body);
+          cardBodies.splice(i, 1);
+          cardDivs.splice(i, 1);
+          continue;
+        }
         div.style.left = body.position.x - cardWidth / 2 + "px";
         div.style.top = body.position.y - cardHeight / 2 + "px";
         div.style.transform = `rotate(${body.angle}rad)`;
