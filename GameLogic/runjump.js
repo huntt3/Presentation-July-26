@@ -68,25 +68,47 @@ class Player extends EngineObject {
     } else {
       this.onGround = false;
     }
-    // Animate
+    // Animate: walk cycles through BlueSlime.png, idle cycles through BlueSlimeIdle.png
+    const FRAMES_PER_ROW = 8;
+    const TOTAL_ROWS = 3;
+    const TOTAL_FRAMES = FRAMES_PER_ROW * TOTAL_ROWS;
+    const IDLE_FRAMES = 8; // Assume 1 row of 8 frames for idle
     this.frameTimer += 1;
     if (Math.abs(move) > 0.1 && this.onGround) {
       if (this.frameTimer > 6) {
-        this.frame = (this.frame + 1) % 8;
+        this.frame = (this.frame + 1) % TOTAL_FRAMES;
         this.frameTimer = 0;
       }
+      this.isIdle = false;
     } else {
-      this.frame = 0;
-      this.frameTimer = 0;
+      if (this.frameTimer > 10) {
+        this.frame = (this.frame + 1) % IDLE_FRAMES;
+        this.frameTimer = 0;
+      }
+      this.isIdle = true;
     }
   }
 
   render() {
-    // Draw the player using the correct frame from BlueSlime.png (littlejsengine)
+    // Draw the player using the correct frame from the correct sprite sheet
+    const FRAMES_PER_ROW = 8;
+    let col, row, spriteSheet, tileSheet;
+    if (this.isIdle) {
+      // Idle: BlueSlimeIdle.png, 1 row
+      col = this.frame % FRAMES_PER_ROW;
+      row = 0;
+      spriteSheet = "BlueSlimeIdle.png";
+      tileSheet = "world_tileset.png";
+    } else {
+      // Walking: BlueSlime.png, 3 rows
+      col = this.frame % FRAMES_PER_ROW;
+      row = Math.floor(this.frame / FRAMES_PER_ROW);
+      spriteSheet = "BlueSlime.png";
+    }
     drawTile(
       this.pos,
       this.size,
-      tile(this.frame, 32, 0, 1, "BlueSlime.png"),
+      tile(vec2(col, row), 32, 0, 1, tileSheet),
       undefined,
       0,
       this.mirror
