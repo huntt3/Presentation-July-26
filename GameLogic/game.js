@@ -267,7 +267,7 @@ function showTodoMessage(todoIndex) {
   titleText.y = skyHeight * 0.18;
 
   // Slightly smaller date text
-  const dateText = new PIXI.Text(`Due: ${todo.date}`, {
+  const dateText = new PIXI.Text(`${todo.date}`, {
     fontFamily: "Arial Black, Arial, sans-serif",
     fontWeight: "bold",
     fontSize: Math.max(24, app.screen.width * 0.025),
