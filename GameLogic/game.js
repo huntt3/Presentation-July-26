@@ -5,7 +5,7 @@ const app = new PIXI.Application();
 const GRAVITY = 0.5;
 const JUMP_FORCE = -12;
 const MOVE_SPEED = 4;
-const TILE_SIZE = 32;
+const TILE_SIZE = 64;
 
 // Game state
 let keys = {};
@@ -27,8 +27,8 @@ const playerState = {
   y: 100,
   velocityX: 0,
   velocityY: 0,
-  width: 32,
-  height: 32,
+  width: 84,
+  height: 84,
   isJumping: false,
   animationFrame: 0,
   idleAnimationSpeed: 0.2,
@@ -383,10 +383,20 @@ function handleInput() {
   // Handle left/right movement
   if (keys["ArrowLeft"] || keys["a"] || keys["A"]) {
     playerState.velocityX = -MOVE_SPEED;
+    // Start jump animation from beginning if transitioning from idle
+    if (!playerState.isJumping) {
+      playerState.animationFrame = 0;
+      playerState.animationTimer = 0;
+    }
     playerState.isJumping = true; // Use jump animation for movement
   }
   if (keys["ArrowRight"] || keys["d"] || keys["D"]) {
     playerState.velocityX = MOVE_SPEED;
+    // Start jump animation from beginning if transitioning from idle
+    if (!playerState.isJumping) {
+      playerState.animationFrame = 0;
+      playerState.animationTimer = 0;
+    }
     playerState.isJumping = true; // Use jump animation for movement
   }
 
@@ -397,11 +407,21 @@ function handleInput() {
   ) {
     playerState.velocityY = JUMP_FORCE;
     isPlayerOnGround = false;
+    // Start jump animation from beginning
+    if (!playerState.isJumping) {
+      playerState.animationFrame = 0;
+      playerState.animationTimer = 0;
+    }
     playerState.isJumping = true;
   }
 
   // If not moving horizontally and on ground, use idle animation
   if (playerState.velocityX === 0 && isPlayerOnGround) {
+    // Start idle animation from beginning if transitioning from jump
+    if (playerState.isJumping) {
+      playerState.animationFrame = 0;
+      playerState.animationTimer = 0;
+    }
     playerState.isJumping = false;
   }
 }
