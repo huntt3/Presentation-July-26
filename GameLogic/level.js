@@ -33,36 +33,21 @@ function initializeEmptyLevel() {
 
 // Create a sample level with platforms and signs
 function createSampleLevel() {
+  // Set up a single row of 36 platform tiles at the bottom
+  const platformCount = 36;
   initializeEmptyLevel();
-
-  // Bottom row - ground platforms
-  for (let x = 0; x < LEVEL_WIDTH; x++) {
+  for (let x = 0; x < platformCount; x++) {
+    // Place platforms on the very bottom row
     currentLevelData[LEVEL_HEIGHT - 1][x] = TILE_TYPES.PLATFORM;
   }
 
-  // Left upper platform
-  for (let x = 0; x < 7; x++) {
-    currentLevelData[LEVEL_HEIGHT - 5][x] = TILE_TYPES.PLATFORM;
+  // Place signs directly above the specified tiles
+  const signTiles = [1, 10, 15, 17, 20]; // 0-based indices for 7th, 15th, 22nd, 26th, 29th
+  for (const x of signTiles) {
+    currentLevelData[LEVEL_HEIGHT - 2][x] = TILE_TYPES.SIGN;
   }
 
-  // Right upper platform
-  for (let x = 18; x < LEVEL_WIDTH; x++) {
-    currentLevelData[LEVEL_HEIGHT - 5][x] = TILE_TYPES.PLATFORM;
-  }
-
-  // Middle floating platforms
-  for (let x = 8; x < 17; x += 3) {
-    currentLevelData[LEVEL_HEIGHT - 3][x] = TILE_TYPES.PLATFORM;
-  }
-
-  // Add some signs
-  currentLevelData[LEVEL_HEIGHT - 2][3] = TILE_TYPES.SIGN; // Ground level left
-  currentLevelData[LEVEL_HEIGHT - 2][21] = TILE_TYPES.SIGN; // Ground level right
-  currentLevelData[LEVEL_HEIGHT - 6][3] = TILE_TYPES.SIGN; // Upper left
-  currentLevelData[LEVEL_HEIGHT - 6][21] = TILE_TYPES.SIGN; // Upper right
-  currentLevelData[LEVEL_HEIGHT - 4][12] = TILE_TYPES.SIGN; // Middle platform
-
-  console.log("Created sample level");
+  console.log("Created custom sample level with 36 platforms and 5 signs");
 }
 
 // Get tile at specific grid position
