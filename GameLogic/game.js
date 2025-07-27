@@ -11,7 +11,7 @@ const app = new PIXI.Application();
 // Game constants
 const GRAVITY = 0.5;
 const JUMP_FORCE = -12;
-const MOVE_SPEED = 4;
+const MOVE_SPEED = 8;
 
 // Game state
 let keys = {};
@@ -197,47 +197,50 @@ function showTodoMessage(todoIndex) {
   showingMessage = true;
   const todo = todoData[todoIndex];
 
-  // Create background
+  // Create background that fills most of the sky area, but leaves room for signs
+  const skyHeight = app.screen.height - TILE_SIZE * 3; // Leave more space for signs
   const background = new PIXI.Graphics();
-  background.beginFill(0x000000, 0.8);
-  background.drawRoundedRect(
-    0,
-    0,
-    app.screen.width * 0.8,
-    app.screen.height * 0.3,
-    10
-  );
+  background.beginFill(0x000000, 0.85);
+  background.drawRoundedRect(0, 0, app.screen.width, skyHeight, 28);
   background.endFill();
-  background.x = app.screen.width * 0.1;
-  background.y = app.screen.height * 0.1;
+  background.x = 0;
+  background.y = 0;
 
-  // Create text
+  // Slightly smaller, bold title text
   const titleText = new PIXI.Text(todo.title, {
-    fontFamily: "Arial",
-    fontSize: Math.max(16, app.screen.width * 0.025),
+    fontFamily: "Arial Black, Arial, sans-serif",
+    fontWeight: "bold",
+    fontSize: Math.max(32, app.screen.width * 0.035),
     fill: 0xffffff,
     wordWrap: true,
-    wordWrapWidth: app.screen.width * 0.7,
+    wordWrapWidth: app.screen.width * 0.85,
+    align: "center",
   });
-  titleText.x = background.x + 20;
-  titleText.y = background.y + 20;
+  titleText.x = (app.screen.width - titleText.width) / 2;
+  titleText.y = skyHeight * 0.18;
 
+  // Slightly smaller date text
   const dateText = new PIXI.Text(`Due: ${todo.date}`, {
-    fontFamily: "Arial",
-    fontSize: Math.max(14, app.screen.width * 0.02),
+    fontFamily: "Arial Black, Arial, sans-serif",
+    fontWeight: "bold",
+    fontSize: Math.max(24, app.screen.width * 0.025),
     fill: 0xffff00,
     wordWrap: true,
     wordWrapWidth: app.screen.width * 0.7,
+    align: "center",
   });
-  dateText.x = background.x + 20;
-  dateText.y = titleText.y + titleText.height + 10;
+  dateText.x = (app.screen.width - dateText.width) / 2;
+  dateText.y = titleText.y + titleText.height + 24;
 
+  // Slightly smaller instruction text
   const instructionText = new PIXI.Text("Press E to close", {
-    fontFamily: "Arial",
-    fontSize: Math.max(12, app.screen.width * 0.018),
+    fontFamily: "Arial Black, Arial, sans-serif",
+    fontWeight: "bold",
+    fontSize: Math.max(20, app.screen.width * 0.02),
     fill: 0xcccccc,
+    align: "center",
   });
-  instructionText.x = background.x + 20;
+  instructionText.x = (app.screen.width - instructionText.width) / 2;
   instructionText.y = dateText.y + dateText.height + 20;
 
   // Add to container

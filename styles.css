@@ -1,3 +1,7 @@
+* {
+  background: #fefefe;
+}
+
 /* Responsive canvas for pixel-perfect game */
 #slime-canvas {
   display: block;
