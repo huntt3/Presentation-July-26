@@ -57,8 +57,9 @@ async function init() {
     // Set canvas size directly for pixel-perfect fit
     canvas.width = gameWidth;
     canvas.height = gameHeight;
-    canvas.style.width = "100%";
-    canvas.style.height = "auto";
+    // Remove forced stretching; let CSS handle scaling for responsiveness
+    canvas.style.width = "";
+    canvas.style.height = "";
 
     // Initialize the application with settings
     await app.init({
@@ -490,9 +491,9 @@ function updateAnimation() {
 }
 
 function updatePlayerSprite() {
-  // Update player sprite position
+  // Update player sprite position (show 1 pixel lower for visual alignment)
   player.x = playerState.x;
-  player.y = playerState.y;
+  player.y = playerState.y + 5;
 
   // Update animation frame and maintain consistent size
   if (playerState.isJumping) {
