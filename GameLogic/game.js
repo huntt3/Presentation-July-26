@@ -29,7 +29,8 @@ const playerState = {
   height: 32,
   isJumping: false,
   animationFrame: 0,
-  animationSpeed: 0.1,
+  idleAnimationSpeed: 0.2,
+  jumpAnimationSpeed: 0.7,
   animationTimer: 0,
 };
 
@@ -42,7 +43,10 @@ async function init() {
 
     // Calculate game dimensions based on available space
     const gameWidth = gameContainer.offsetWidth;
-    const gameHeight = gameContainer.offsetHeight;
+    const gameHeight = Math.min(
+      gameContainer.offsetHeight,
+      window.innerHeight - 150
+    ); // Account for header
 
     // Initialize the application with settings
     await app.init({
@@ -50,7 +54,6 @@ async function init() {
       height: gameHeight,
       backgroundColor: 0x87ceeb, // Sky blue background
       canvas: canvas,
-      resizeTo: gameContainer,
     });
 
     // Load TODO data
@@ -426,7 +429,12 @@ function checkSignCollision() {
 }
 
 function updateAnimation() {
-  playerState.animationTimer += playerState.animationSpeed;
+  // Use different animation speeds for idle vs jump
+  const currentAnimationSpeed = playerState.isJumping
+    ? playerState.jumpAnimationSpeed
+    : playerState.idleAnimationSpeed;
+
+  playerState.animationTimer += currentAnimationSpeed;
 
   if (playerState.animationTimer >= 1) {
     playerState.animationTimer = 0;
@@ -446,12 +454,16 @@ function updatePlayerSprite() {
   player.x = playerState.x;
   player.y = playerState.y;
 
-  // Update animation frame
+  // Update animation frame and maintain consistent size
   if (playerState.isJumping) {
     player.texture = jumpTextures[Math.floor(playerState.animationFrame)];
   } else {
     player.texture = idleTextures[Math.floor(playerState.animationFrame)];
   }
+
+  // Ensure consistent size regardless of animation
+  player.width = playerState.width;
+  player.height = playerState.height;
 }
 
 // Game state for key handling
