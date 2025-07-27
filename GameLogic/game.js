@@ -165,19 +165,23 @@ async function init() {
           typeof currentLevelData[y] !== "undefined" &&
           currentLevelData[y][x] === TILE_TYPES.CRATE
         ) {
+          // Make crate smaller than tile size so it can fall through gaps
+          const crateSize = TILE_SIZE * 0.8; // 80% of tile size
+          const offset = (TILE_SIZE - crateSize) / 2; // Center the crate in the tile
+
           const crate = {
-            x: x * TILE_SIZE,
-            y: y * TILE_SIZE,
-            width: TILE_SIZE,
-            height: TILE_SIZE,
+            x: x * TILE_SIZE + offset,
+            y: y * TILE_SIZE + offset,
+            width: crateSize,
+            height: crateSize,
             velocityX: 0,
             velocityY: 0,
             sprite: new PIXI.Sprite(crateTexture),
           };
           crate.sprite.x = crate.x;
           crate.sprite.y = crate.y;
-          crate.sprite.width = TILE_SIZE;
-          crate.sprite.height = TILE_SIZE;
+          crate.sprite.width = crateSize;
+          crate.sprite.height = crateSize;
           app.stage.addChild(crate.sprite);
           crates.push(crate);
         }
@@ -275,23 +279,11 @@ function showTodoMessage(todoIndex) {
   dateText.x = (app.screen.width - dateText.width) / 2;
   dateText.y = titleText.y + titleText.height + 24;
 
-  // Slightly smaller instruction text
-  const instructionText = new PIXI.Text("Press E to close", {
-    fontFamily: "Arial Black, Arial, sans-serif",
-    fontWeight: "bold",
-    fontSize: Math.max(20, app.screen.width * 0.02),
-    fill: 0xcccccc,
-    align: "center",
-  });
-  instructionText.x = (app.screen.width - instructionText.width) / 2;
-  instructionText.y = dateText.y + dateText.height + 20;
-
   // Add to container
   messageContainer.removeChildren();
   messageContainer.addChild(background);
   messageContainer.addChild(titleText);
   messageContainer.addChild(dateText);
-  messageContainer.addChild(instructionText);
   messageContainer.visible = true;
 }
 
@@ -373,24 +365,35 @@ function gameLoop() {
   // Update crate physics and handle player pushing
   function updateCrates() {
     for (const crate of crates) {
-      // Apply gravity
-      crate.velocityY += GRAVITY;
+      // Apply reduced gravity for slower acceleration
+      crate.velocityY += GRAVITY * 0.6; // 60% of normal gravity
 
-      // Horizontal movement: check if player is pushing
+      // Horizontal movement: check if player is pushing (more precise collision)
+      const playerPushMargin = 5; // Small margin for push detection
       if (
-        playerState.x + playerState.width > crate.x &&
-        playerState.x < crate.x + crate.width &&
-        playerState.y + playerState.height > crate.y &&
-        playerState.y < crate.y + crate.height
+        playerState.x + playerState.width > crate.x - playerPushMargin &&
+        playerState.x < crate.x + crate.width + playerPushMargin &&
+        playerState.y + playerState.height > crate.y + 10 && // Only push if player is mostly above crate
+        playerState.y < crate.y + crate.height - 10
       ) {
-        // Player is touching crate horizontally
-        if (playerState.velocityX !== 0) {
-          crate.velocityX = playerState.velocityX;
+        // Player is touching crate horizontally and moving
+        if (Math.abs(playerState.velocityX) > 0.1) {
+          // Gradual acceleration instead of instant velocity transfer
+          const pushForce = playerState.velocityX * 0.3; // Reduced push force
+          crate.velocityX += pushForce * 0.2; // Gradual acceleration
+          // Cap the maximum velocity
+          const maxVelocity = 3;
+          crate.velocityX = Math.max(
+            -maxVelocity,
+            Math.min(maxVelocity, crate.velocityX)
+          );
         }
+      } else {
+        // If not being pushed, apply stronger friction
+        crate.velocityX *= 0.9;
       }
 
       // Apply friction to crate
-      crate.velocityX *= 0.8;
       if (Math.abs(crate.velocityX) < 0.1) crate.velocityX = 0;
 
       // Update crate position
@@ -400,10 +403,10 @@ function gameLoop() {
       // Collide with platforms (stand on platforms)
       for (const platform of platforms) {
         if (
-          crate.x < platform.x + platform.width &&
           crate.x + crate.width > platform.x &&
+          crate.x < platform.x + platform.width &&
           crate.y + crate.height > platform.y &&
-          crate.y + crate.height - crate.velocityY <= platform.y
+          crate.y + crate.height - crate.velocityY <= platform.y + 5 // Small tolerance
         ) {
           // Land on top of platform
           crate.y = platform.y - crate.height;
@@ -415,10 +418,10 @@ function gameLoop() {
       for (const other of crates) {
         if (other === crate) continue;
         if (
-          crate.x < other.x + other.width &&
           crate.x + crate.width > other.x &&
+          crate.x < other.x + other.width &&
           crate.y + crate.height > other.y &&
-          crate.y + crate.height - crate.velocityY <= other.y
+          crate.y + crate.height - crate.velocityY <= other.y + 5
         ) {
           crate.y = other.y - crate.height;
           crate.velocityY = 0;
@@ -432,9 +435,14 @@ function gameLoop() {
       }
 
       // Prevent crate from going out of bounds horizontally
-      if (crate.x < 0) crate.x = 0;
-      if (crate.x + crate.width > app.screen.width)
+      if (crate.x < 0) {
+        crate.x = 0;
+        crate.velocityX = 0;
+      }
+      if (crate.x + crate.width > app.screen.width) {
         crate.x = app.screen.width - crate.width;
+        crate.velocityX = 0;
+      }
 
       // Update sprite position
       crate.sprite.x = crate.x;
@@ -520,6 +528,7 @@ function updatePlayer() {
 function checkCollisions() {
   isPlayerOnGround = false;
 
+  // Check collision with platforms
   for (let platform of platforms) {
     // First do a rough bounding box check for performance
     if (
@@ -549,6 +558,49 @@ function checkCollisions() {
           playerState.velocityY = 0;
           isPlayerOnGround = true;
         }
+      }
+    }
+  }
+
+  // Check collision with crates
+  for (let crate of crates) {
+    if (
+      playerState.x < crate.x + crate.width &&
+      playerState.x + playerState.width > crate.x &&
+      playerState.y < crate.y + crate.height &&
+      playerState.y + playerState.height > crate.y
+    ) {
+      // Calculate overlap amounts
+      const overlapLeft = playerState.x + playerState.width - crate.x;
+      const overlapRight = crate.x + crate.width - playerState.x;
+      const overlapTop = playerState.y + playerState.height - crate.y;
+      const overlapBottom = crate.y + crate.height - playerState.y;
+
+      // Find the smallest overlap to determine collision direction
+      const minOverlap = Math.min(
+        overlapLeft,
+        overlapRight,
+        overlapTop,
+        overlapBottom
+      );
+
+      if (minOverlap === overlapTop && playerState.velocityY > 0) {
+        // Player is landing on top of crate
+        playerState.y = crate.y - playerState.height;
+        playerState.velocityY = 0;
+        isPlayerOnGround = true;
+      } else if (minOverlap === overlapBottom && playerState.velocityY < 0) {
+        // Player hits crate from below
+        playerState.y = crate.y + crate.height;
+        playerState.velocityY = 0;
+      } else if (minOverlap === overlapLeft && playerState.velocityX > 0) {
+        // Player hits crate from the left
+        playerState.x = crate.x - playerState.width;
+        playerState.velocityX = 0;
+      } else if (minOverlap === overlapRight && playerState.velocityX < 0) {
+        // Player hits crate from the right
+        playerState.x = crate.x + crate.width;
+        playerState.velocityX = 0;
       }
     }
   }
