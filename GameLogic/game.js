@@ -18,6 +18,8 @@ let jumpTextures = [];
 let isPlayerOnGround = false;
 let showingMessage = false;
 let messageContainer = null;
+let slimeColorCanvas = null;
+let slimeColorContext = null;
 
 // Player object
 const playerState = {
@@ -94,6 +96,9 @@ async function init() {
 
     // Create player
     createPlayer();
+
+    // Create color detection canvas
+    createColorDetectionCanvas();
 
     // Create message container
     createMessageContainer();
@@ -311,6 +316,57 @@ function createPlayer() {
   app.stage.addChild(player);
 }
 
+// Create a canvas for color detection (simplified version)
+function createColorDetectionCanvas() {
+  // Canvas setup for potential future pixel-perfect collision detection
+  slimeColorCanvas = document.createElement("canvas");
+  slimeColorCanvas.width = playerState.width;
+  slimeColorCanvas.height = playerState.height;
+  slimeColorContext = slimeColorCanvas.getContext("2d");
+}
+
+// Check if a pixel is blue (slime body color)
+function isBluePixel(r, g, b, a) {
+  // Check if pixel is not transparent and has blue components
+  // Adjust these values based on your slime's actual blue color
+  return a > 128 && b > r && b > g && b > 100;
+}
+
+// Simplified collision detection using estimated blue pixel areas
+function checkBluePixelCollision(platform) {
+  // Define blue pixel areas based on slime shape (approximate center area)
+  const bluePixelAreas = [
+    // Center area of slime (where blue pixels typically are)
+    {
+      x: playerState.x + playerState.width * 0.25,
+      y: playerState.y + playerState.height * 0.3,
+      width: playerState.width * 0.5,
+      height: playerState.height * 0.6,
+    },
+    // Bottom area for ground collision
+    {
+      x: playerState.x + playerState.width * 0.3,
+      y: playerState.y + playerState.height * 0.7,
+      width: playerState.width * 0.4,
+      height: playerState.height * 0.3,
+    },
+  ];
+
+  // Check if any blue pixel area overlaps with platform
+  for (let area of bluePixelAreas) {
+    if (
+      area.x < platform.x + platform.width &&
+      area.x + area.width > platform.x &&
+      area.y < platform.y + platform.height &&
+      area.y + area.height > platform.y
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function gameLoop() {
   handleInput();
   updatePlayer();
@@ -378,18 +434,34 @@ function checkCollisions() {
   isPlayerOnGround = false;
 
   for (let platform of platforms) {
-    // Check if player is colliding with platform
+    // First do a rough bounding box check for performance
     if (
       playerState.x < platform.x + platform.width &&
       playerState.x + playerState.width > platform.x &&
       playerState.y < platform.y + platform.height &&
       playerState.y + playerState.height > platform.y
     ) {
-      // Player is falling down and hits top of platform
-      if (playerState.velocityY > 0 && playerState.y < platform.y) {
-        playerState.y = platform.y - playerState.height;
-        playerState.velocityY = 0;
-        isPlayerOnGround = true;
+      // Then do precise blue pixel collision detection
+      try {
+        if (checkBluePixelCollision(platform)) {
+          // Player is falling down and hits top of platform
+          if (playerState.velocityY > 0 && playerState.y < platform.y) {
+            playerState.y = platform.y - playerState.height;
+            playerState.velocityY = 0;
+            isPlayerOnGround = true;
+          }
+        }
+      } catch (error) {
+        // Fallback to bounding box collision if pixel detection fails
+        console.warn(
+          "Pixel collision detection failed, using bounding box:",
+          error
+        );
+        if (playerState.velocityY > 0 && playerState.y < platform.y) {
+          playerState.y = platform.y - playerState.height;
+          playerState.velocityY = 0;
+          isPlayerOnGround = true;
+        }
       }
     }
   }
