@@ -2,7 +2,7 @@ Students are beginners learning the basics of JavaScript.
 
 We provide the simplest, beginner-friendly code possible.
 
-We use littlejs for game development, which is a beginner-friendly JavaScript library.
+We use pixi.js for game development, which is a beginner-friendly JavaScript library.
 
 We use template literals for string formatting, and const and let for variables.
 
